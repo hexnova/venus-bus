@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<venus-bus>
+	<remotes>
+		<remote name="defaultRemote" poolSize="16">
+			<!-- 与远程连接的socket相关的配置 -->
+			<factory>
+				<!-- 支持多节点负责均衡的高可用配置，默认采用轮询  -->
+				<property name="ipAddressList">${venus.service.defaultService.ipAddressList}</property>
+				
+				<!-- socket的sendBuffer缓冲区大小，单位:K -->
+				<property name="sendBufferSize">${venus.socket.sendBufferSize}</property>
+				
+				<!-- socket的receiveBuffer缓冲区大小，单位:K -->
+				<property name="receiveBufferSize">${venus.socket.receiveBufferSize}</property>
+				
+				<property name="writeQueueCapcity">${venus.socket.writeQueueCapcity}</property>
+			</factory>
+			
+			<!-- 用户名、密码认证方式  -->
+			<authenticator class="com.meidusa.venus.client.authenticate.UserPasswordAuthenticator">
+				<property name="username">venus</property>
+				<property name="password">venus</property>
+				<!-- 对象系列化方式，目前支持3种 ： 0:json ,1：bson , 2: java对象系列化 -->
+				<property name="serializeType">0</property>
+			</authenticator>
+		</remote>
+	</remotes>
+	<!-- 服务接口列表 -->
+	<services>
+		<!-- 定义服务以及指定该服务提供方的远程相关配置 -->
+		<service serviceName="HelloService" version="[0,100]" remote="defaultRemote"/>
+		<service serviceName="ParameterizedService" version="{0,1}" remote="defaultRemote"/>
+		<service serviceName="ParameterizedService" version="2" remote="defaultRemote"/>
+		<service serviceName="memberInfoService" version="[0,100]" remote="defaultRemote"/>
+	</services>
+</venus-bus>

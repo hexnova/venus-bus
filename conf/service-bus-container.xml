@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+		http://www.springframework.org/schema/oxm http://www.springframework.org/schema/oxm/spring-oxm-3.0.xsd"
+	xmlns:oxm="http://www.springframework.org/schema/oxm"
+	xmlns:p="http://www.springframework.org/schema/p" default-autowire="byName">
+
+	<bean class="com.meidusa.venus.spring.VenusPropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>file:${project.home}/application.properties</value>
+            </list>
+        </property>
+    </bean>
+    
+    <bean name="connectionManagerFactoryBean" class="com.meidusa.venus.bus.ConnectionManagerFactoryBean">
+    	<property name="executorSize"><value>-1</value></property>
+    	<property name="singleton"><value>false</value></property>
+    	<property name="size"><value>${venus.reactor.size}</value></property>
+    </bean>
+    
+    <bean id="acceptor" class="com.meidusa.venus.bus.VenusConnectionAcceptor" init-method="start" destroy-method="shutdown">
+    	<property name="name" value="Service socket Server"/>
+    	<property name="port" value="${venus.server.binding.port}"/>
+    	<property name="connectionFactory" ref="busFrontendConnectionFactory"/>
+    	<property name="observer" ref="clientConnectionObserver"/>
+    	<property name="processors" ref="connectionManagerFactoryBean"/>
+    </bean>
+    
+    <bean id="clientConnectionObserver" class="com.meidusa.venus.bus.handler.ClientConnectionObserver"/>
+    
+    
+    <bean id="busFrontendConnectionFactory" class="com.meidusa.venus.bus.network.BusFrontendConnectionFactory">
+		<property name="messageHandler">
+			<bean id="messageHandler" class="com.meidusa.venus.bus.handler.BusFrontendMessageHandler"/>
+		</property>
+		<property name="retry">
+			<bean class="com.meidusa.venus.bus.handler.RetryMessageHandler" init-method="init"/>
+		</property>
+		
+		<property name="writeQueueCapcity" value="${venus.socket.writeQueueCapcity}"/>
+		<property name="sendBufferSize" value="${venus.socket.sendBufferSize}"/>
+		<property name="receiveBufferSize" value="${venus.socket.receiveBufferSize}"/>
+				
+	</bean>
+	
+	
+	<!-- only for performance test -->
+	<!-- <bean id="busFrontendConnectionFactory" class="com.meidusa.venus.bus.network.BusDebugFrontendConnectionFactory">
+		<property name="remoteHost" value="127.0.0.1"/>
+    	<property name="remotePort" value="17800"/>
+    	<property name="connector" ref="connector"/>
+	</bean> -->
+	
+	 
+	<bean id="backendMessageHandler" class="com.meidusa.venus.bus.handler.BusBackendMessageHandler">
+		<property name="clientConnectionObserver" ref="clientConnectionObserver"/>
+	</bean>
+	
+	<bean id="authenticateProvider" class="com.meidusa.venus.bus.authenticate.SimpleAuthenticateProvider">
+    	<property name="useDummy" value="true"/>
+    	<property name="username" value="venus"/>
+    	<property name="password" value="venus"/>
+    </bean>
+    
+    <bean id="venusExceptionFactory" class="com.meidusa.venus.exception.XmlVenusExceptionFactory" init-method="init">
+		<property name="configFiles">
+			<list>
+				<value>classpath:com/meidusa/venus/exception/VenusSystemException.xml</value>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="abstractRemoteManager" abstract="true">
+		<property name="messageHandler" ref="backendMessageHandler"/>
+		<property name="connector" ref="connector"/>
+	</bean>
+	
+	<bean id="connector" class="com.meidusa.venus.bus.VenusConnectionConnector" init-method="start">
+		<constructor-arg><value>Backend connection Manager</value></constructor-arg>
+		<property name="processors" ref="connectionManagerFactoryBean"/>
+	</bean>
+			
+	<!-- 
+		基于xml配置的服务加载方式
+	 -->
+	
+	<!-- <bean id="remoteManager" class="com.meidusa.venus.bus.xml.XmlFileRemoteServiceManager" scope="prototype" init-method="init" parent="abstractRemoteManager">
+		<property name="configFiles">
+			<list>
+				<value>file:${project.home}/conf/venusRemoteConfig.xml</value>
+			</list>
+		</property>
+	</bean>
+	 -->
+	
+	<!-- 
+		基于服务注册中心的服务加载方式
+	 -->
+	
+	<bean id="remoteManager" class="com.meidusa.venus.bus.registry.RegistryRemoteServiceManager" init-method="init" parent="abstractRemoteManager">
+		<property name="host" value="${venus.registry.host}"/>
+		<property name="port" value="${venus.registry.port}"/>
+	</bean>
+	
+    
+	<bean id="authenticator" class="com.meidusa.venus.client.authenticate.DummyAuthenticator"/>
+	
+</beans>

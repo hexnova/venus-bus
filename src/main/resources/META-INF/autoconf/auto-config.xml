@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="GB2312"?>
+<config>        
+    <group name="venus bus Config" description="venus Server side Config">
+        <property name="venus.service.defaultService.ipAddressList" defaultValue="127.0.0.1:16800" description="venus defaultRemote service ipAddress"/>
+        <property name="venus.service.defaultService.serializeType" defaultValue="0" description="venus defaultRemote service serialize Type"/>
+    </group>
+</config>
